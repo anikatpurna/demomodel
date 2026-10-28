@@ -1,0 +1,6 @@
+scenario,employees,hourly_wage,hours_per_day,days_per_month,payroll_burden_pct,monthly_overhead,monthly_units,target_margin_pct,quotes_per_month,manual_minutes_per_quote,automated_minutes_per_quote,analyst_hourly_cost
+Baseline,10,20,8,22,20,5000,50000,25,40,45,8,35
+Higher wages,10,23,8,22,20,5000,50000,25,40,45,8,35
+Lower productivity,10,20,8,22,20,5000,40000,25,40,45,8,35
+Higher volume,10,20,8,22,20,5000,65000,25,40,45,8,35
+Higher target margin,10,20,8,22,20,5000,50000,30,40,45,8,35
