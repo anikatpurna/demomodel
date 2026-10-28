@@ -3,72 +3,126 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { change } from '../lib/calc.js';
 import { fmtMoney, fmtPrice, fmtPct, fmtSigned, dash } from '../lib/format.js';
 
-const COLORS = ['#2563eb', '#f59e0b', '#64748b'];
+const COLORS = ['#111111', '#d97706', '#9ca3af'];
 
-function Kpi({ label, value, sub }) {
+const units = (n) => new Intl.NumberFormat('en-US').format(n);
+
+function Kpi({ label, value, help }) {
   return (
     <div className="kpi">
       <div className="kpi-label">{label}</div>
       <div className="kpi-value">{value}</div>
-      {sub && <div className="kpi-sub">{sub}</div>}
+      {help && <div className="kpi-help">{help}</div>}
     </div>
+  );
+}
+
+/** Step 2: your price. `unitsPerMonth` is the baseline monthly volume (number). */
+export function ResultsSection({ result, unitsPerMonth, marginPct }) {
+  if (!result) return <p className="warn">Some of your numbers in Step 1 need attention. Fix the highlighted fields to see your price.</p>;
+  const pie = [
+    { name: 'Wages', value: result.baseLaborCost },
+    { name: 'Payroll costs', value: result.payrollBurdenCost },
+    { name: 'Other costs', value: result.monthlyOverhead },
+  ].filter((d) => d.value > 0);
+
+  return (
+    <>
+      <div className="hero" aria-live="polite">
+        <div className="hero-label">Your recommended price</div>
+        <div className="hero-value">{fmtPrice(result.sellingPricePerUnit)} <span>per unit</span></div>
+        <p className="hero-text">
+          Handling {units(unitsPerMonth)} units a month costs you <strong>{fmtMoney(result.totalMonthlyCost)}</strong>{' '}
+          ({fmtPrice(result.costPerUnit)} per unit). Charging {fmtPrice(result.sellingPricePerUnit)} per unit brings in{' '}
+          <strong>{fmtMoney(result.monthlyRevenue)}</strong> and leaves <strong>{fmtMoney(result.monthlyProfit)}</strong> profit
+          — a {fmtPct(marginPct)} margin.
+        </p>
+      </div>
+
+      <div className="kpis">
+        <Kpi label="Total monthly cost" value={fmtMoney(result.totalMonthlyCost)} help="Wages + payroll costs + other costs" />
+        <Kpi label="Cost per unit" value={fmtPrice(result.costPerUnit)} help="What each unit costs you to handle" />
+        <Kpi label="Monthly revenue" value={fmtMoney(result.monthlyRevenue)} help="Price × units" />
+        <Kpi label="Monthly profit" value={fmtMoney(result.monthlyProfit)} help="Revenue − total cost" />
+        <Kpi label="Profit margin" value={fmtPct(result.grossMarginPct)} help="Profit as a share of revenue" />
+      </div>
+
+      <h3>Where your money goes</h3>
+      <div role="img" aria-label={`Pie chart of monthly cost: ${pie.map((d) => `${d.name} ${fmtMoney(d.value)}`).join(', ')}`}>
+        <ResponsiveContainer width="100%" height={260}>
+          <PieChart>
+            <Pie data={pie} dataKey="value" nameKey="name" outerRadius={85} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+              {pie.map((d, i) => <Cell key={d.name} fill={COLORS[i % COLORS.length]} />)}
+            </Pie>
+            <Tooltip formatter={(v) => fmtMoney(v)} />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </>
   );
 }
 
 const ROWS = [
   { key: 'totalMonthlyCost', label: 'Total monthly cost', f: fmtMoney },
-  { key: 'sellingPricePerUnit', label: 'Recommended price / unit', f: fmtPrice },
+  { key: 'sellingPricePerUnit', label: 'Recommended price per unit', f: fmtPrice },
   { key: 'monthlyRevenue', label: 'Monthly revenue', f: fmtMoney },
   { key: 'monthlyProfit', label: 'Monthly profit', f: fmtMoney },
-  { key: 'grossMarginPct', label: 'Gross margin', f: fmtPct },
+  { key: 'grossMarginPct', label: 'Profit margin', f: fmtPct },
 ];
 
-export default function Dashboard({ baseline, scenario, atBaselinePrice }) {
-  const breakdown = (r) =>
-    r
-      ? [
-          { name: 'Base labor', value: r.baseLaborCost },
-          { name: 'Payroll burden', value: r.payrollBurdenCost },
-          { name: 'Overhead', value: r.monthlyOverhead },
-        ].filter((d) => d.value > 0)
-      : [];
+/** Plain-English summary of how the what-if differs from the starting numbers. */
+function Summary({ baseline, scenario, atBaselinePrice }) {
+  const price = change(baseline.sellingPricePerUnit, scenario.sellingPricePerUnit);
+  const profit = change(baseline.monthlyProfit, scenario.monthlyProfit);
+  const same = Math.abs(price.abs) < 1e-9 && Math.abs(profit.abs) < 0.005 && Math.abs(scenario.totalMonthlyCost - baseline.totalMonthlyCost) < 0.005;
+  if (same) return <p className="note">Nothing has changed yet. Try a quick what-if above, or change the numbers below.</p>;
 
-  const compare = baseline && scenario
-    ? [
-        { metric: 'Total cost', Baseline: baseline.totalMonthlyCost, Scenario: scenario.totalMonthlyCost },
-        { metric: 'Revenue', Baseline: baseline.monthlyRevenue, Scenario: scenario.monthlyRevenue },
-        { metric: 'Profit', Baseline: baseline.monthlyProfit, Scenario: scenario.monthlyProfit },
-      ]
-    : [];
+  const dir = price.abs > 0 ? 'rises' : price.abs < 0 ? 'falls' : 'stays the same';
+  return (
+    <div className="note">
+      <p>
+        <strong>To keep your {fmtPct(scenario.grossMarginPct)} margin, your price per unit {dir}</strong>
+        {price.abs !== 0 && <> by {fmtPrice(Math.abs(price.abs))}{price.pct !== null && <> ({fmtPct(Math.abs(price.pct))})</>}, to {fmtPrice(scenario.sellingPricePerUnit)}</>}.
+      </p>
+      {atBaselinePrice && (
+        <p>
+          <strong>If you do not change your price</strong> ({fmtPrice(baseline.sellingPricePerUnit)}), monthly profit would be{' '}
+          {fmtMoney(atBaselinePrice.profit)} instead of {fmtMoney(baseline.monthlyProfit)}
+          {' '}({fmtSigned(atBaselinePrice.profit - baseline.monthlyProfit, fmtMoney)}), and your margin would be {fmtPct(atBaselinePrice.marginPct)}.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Step 3: what-if comparison. */
+export function ComparisonSection({ baseline, scenario, atBaselinePrice }) {
+  if (!baseline) return <p className="warn">Fix the numbers in Step 1 first.</p>;
+  if (!scenario) return <p className="warn">Some what-if numbers need attention. Fix the highlighted fields below.</p>;
+
+  const compare = [
+    { metric: 'Cost', Today: baseline.totalMonthlyCost, 'What if': scenario.totalMonthlyCost },
+    { metric: 'Revenue', Today: baseline.monthlyRevenue, 'What if': scenario.monthlyRevenue },
+    { metric: 'Profit', Today: baseline.monthlyProfit, 'What if': scenario.monthlyProfit },
+  ];
 
   return (
-    <section className="card" aria-labelledby="dash-h">
-      <h2 id="dash-h">Financial dashboard</h2>
+    <>
+      <Summary baseline={baseline} scenario={scenario} atBaselinePrice={atBaselinePrice} />
 
-      {!baseline && <p className="warn">Fix the invalid Baseline inputs to see results.</p>}
-      {!scenario && <p className="warn">Fix the invalid Scenario inputs to see results.</p>}
-
-      <h3>Scenario results</h3>
-      <div className="kpis">
-        <Kpi label="Total monthly cost" value={fmtMoney(scenario?.totalMonthlyCost)} />
-        <Kpi label="Recommended price / unit" value={fmtPrice(scenario?.sellingPricePerUnit)} />
-        <Kpi label="Projected revenue" value={fmtMoney(scenario?.monthlyRevenue)} />
-        <Kpi label="Projected profit" value={fmtMoney(scenario?.monthlyProfit)} />
-        <Kpi label="Gross profit margin" value={fmtPct(scenario?.grossMarginPct)} />
-      </div>
-
-      <h3>Baseline vs. scenario</h3>
       <div className="table-wrap">
         <table>
+          <caption className="sr-only">Today compared with the what-if scenario</caption>
           <thead>
-            <tr><th>Metric</th><th>Baseline</th><th>Scenario</th><th>Change</th><th>% change</th></tr>
+            <tr><th scope="col">Per month</th><th scope="col">Today</th><th scope="col">What if</th><th scope="col">Change</th><th scope="col">% change</th></tr>
           </thead>
           <tbody>
             {ROWS.map((row) => {
-              const b = baseline?.[row.key] ?? null;
-              const s = scenario?.[row.key] ?? null;
+              const b = baseline[row.key];
+              const s = scenario[row.key];
               const c = change(b, s);
-              const cls = c && c.abs !== 0 ? (c.abs > 0 ? 'up' : 'down') : '';
+              const cls = c && Math.abs(c.abs) > 1e-9 ? (c.abs > 0 ? 'up' : 'down') : '';
               return (
                 <tr key={row.key}>
                   <th scope="row">{row.label}</th>
@@ -83,61 +137,19 @@ export default function Dashboard({ baseline, scenario, atBaselinePrice }) {
         </table>
       </div>
 
-      {atBaselinePrice && (
-        <p className="note">
-          <strong>If the baseline price ({fmtPrice(baseline.sellingPricePerUnit)}/unit) is not changed:</strong> scenario
-          revenue would be {fmtMoney(atBaselinePrice.revenue)}, profit {fmtMoney(atBaselinePrice.profit)}, and gross
-          margin {fmtPct(atBaselinePrice.marginPct)} (vs. the {fmtPct(scenario.grossMarginPct)} target at the recommended price).
-        </p>
-      )}
-
-      <div className="charts">
-        <div className="chart">
-          <h3>Cost breakdown — baseline</h3>
-          <CostPie data={breakdown(baseline)} />
-        </div>
-        <div className="chart">
-          <h3>Cost breakdown — scenario</h3>
-          <CostPie data={breakdown(scenario)} />
-        </div>
-        <div className="chart wide">
-          <h3>Baseline vs. scenario (monthly $)</h3>
-          {compare.length ? (
-            <div role="img" aria-label="Bar chart comparing baseline and scenario cost, revenue and profit">
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={compare} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="metric" />
-                  <YAxis tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
-                  <Tooltip formatter={(v) => fmtMoney(v)} />
-                  <Legend />
-                  <Bar dataKey="Baseline" fill="#64748b" />
-                  <Bar dataKey="Scenario" fill="#2563eb" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <p className="muted">No data</p>
-          )}
-        </div>
+      <div role="img" aria-label="Bar chart comparing today and the what-if scenario for cost, revenue and profit">
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={compare} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="metric" />
+            <YAxis tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
+            <Tooltip formatter={(v) => fmtMoney(v)} />
+            <Legend />
+            <Bar dataKey="Today" fill="#9ca3af" />
+            <Bar dataKey="What if" fill="#111111" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-    </section>
-  );
-}
-
-function CostPie({ data }) {
-  if (!data.length) return <p className="muted">No data</p>;
-  return (
-    <div role="img" aria-label={`Pie chart of cost breakdown: ${data.map((d) => `${d.name} ${fmtMoney(d.value)}`).join(', ')}`}>
-      <ResponsiveContainer width="100%" height={260}>
-        <PieChart>
-          <Pie data={data} dataKey="value" nameKey="name" outerRadius={85} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
-            {data.map((d, i) => <Cell key={d.name} fill={COLORS[i % COLORS.length]} />)}
-          </Pie>
-          <Tooltip formatter={(v) => fmtMoney(v)} />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+    </>
   );
 }

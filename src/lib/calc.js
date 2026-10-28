@@ -3,21 +3,21 @@
 // Field definitions for the pricing calculator. `min`/`max` are inclusive unless
 // `minExclusive` / `maxExclusive` is set.
 export const PRICING_FIELDS = [
-  { key: 'employees', label: 'Number of employees', min: 0, step: 1, integer: true },
-  { key: 'hourly_wage', label: 'Hourly employee wage ($)', min: 0, step: 0.5 },
-  { key: 'hours_per_day', label: 'Hours per day', min: 0, max: 24, step: 0.5 },
-  { key: 'days_per_month', label: 'Working days per month', min: 0, max: 31, step: 1 },
-  { key: 'payroll_burden_pct', label: 'Payroll burden (%)', min: 0, max: 200, step: 0.5 },
-  { key: 'monthly_overhead', label: 'Monthly overhead ($)', min: 0, step: 100 },
-  { key: 'monthly_units', label: 'Monthly units processed', min: 0, minExclusive: true, step: 100 },
-  { key: 'target_margin_pct', label: 'Target gross profit margin (%)', min: 0, max: 100, maxExclusive: true, step: 0.5 },
+  { key: 'employees', label: 'Number of employees', hint: 'People working on this account.', min: 0, step: 1, integer: true },
+  { key: 'hourly_wage', label: 'Hourly employee wage ($)', hint: 'Average pay per person, before payroll costs.', min: 0, step: 0.5 },
+  { key: 'hours_per_day', label: 'Hours per day', hint: 'Paid hours per person each day.', min: 0, max: 24, step: 0.5 },
+  { key: 'days_per_month', label: 'Working days per month', hint: 'Days the team works in a month.', min: 0, max: 31, step: 1 },
+  { key: 'payroll_burden_pct', label: 'Payroll burden (%)', hint: 'Taxes, benefits and insurance on top of wages, as a % of wages.', min: 0, max: 200, step: 0.5 },
+  { key: 'monthly_overhead', label: 'Monthly overhead ($)', hint: 'Everything besides labor: space, equipment, utilities, supplies.', min: 0, step: 100 },
+  { key: 'monthly_units', label: 'Monthly units processed', hint: 'Items, pallets or orders handled per month.', min: 0, minExclusive: true, step: 100 },
+  { key: 'target_margin_pct', label: 'Target gross profit margin (%)', hint: 'The share of the price you want to keep as profit.', min: 0, max: 100, maxExclusive: true, step: 0.5 },
 ];
 
 export const SAVINGS_FIELDS = [
-  { key: 'quotes_per_month', label: 'Pricing quotes per month', min: 0, step: 1 },
-  { key: 'manual_minutes_per_quote', label: 'Manual minutes per quote', min: 0, step: 1 },
-  { key: 'automated_minutes_per_quote', label: 'Automated minutes per quote', min: 0, step: 1 },
-  { key: 'analyst_hourly_cost', label: 'Analyst labor cost ($/hour)', min: 0, step: 1 },
+  { key: 'quotes_per_month', label: 'Pricing quotes per month', hint: 'How many pricing quotes your team prepares each month.', min: 0, step: 1 },
+  { key: 'manual_minutes_per_quote', label: 'Manual minutes per quote', hint: 'Time to prepare one quote by hand in Excel.', min: 0, step: 1 },
+  { key: 'automated_minutes_per_quote', label: 'Automated minutes per quote', hint: 'Time to prepare one quote with SmartQuote.', min: 0, step: 1 },
+  { key: 'analyst_hourly_cost', label: 'Analyst labor cost ($/hour)', hint: 'What an hour of analyst time costs the business.', min: 0, step: 1 },
 ];
 
 export const DEFAULT_PRICING = {

@@ -8,6 +8,8 @@ No backend, database, authentication, or API key is needed; every calculation ru
 
 ## Features
 
+- **Customer-friendly layout** – Humano logo, a 4-step flow (enter numbers → see price → what if → time saved), a hint under every input, a headline price with a plain-English explanation, and written summaries of what changes in a what-if. (Logo: `src/assets/humano-logo.png`.)
+
 - **Pricing calculator** – employees, wage, hours/day, days/month, payroll burden, overhead, units, target margin.
 - **Scenario analysis** – editable Baseline and Modified-scenario columns, instant recalculation, side-by-side
   table with absolute and % change, and a one-click "reduce monthly units by 20%" scenario. Also shows what happens
