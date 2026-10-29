@@ -83,3 +83,8 @@ src/lib/calc.test.js unit tests
 src/components/      InputsPanel, Dashboard, SavingsPanel, NumberField
 src/App.jsx          state and wiring
 ```
+
+## Apps in this repository
+
+* **SmartQuote AI** (repository root) — warehouse pricing calculator. See the sections above.
+* **ProfitPulse** (`profitpulse/`) — customer profitability dashboard with a what-if simulator. See [`profitpulse/README.md`](profitpulse/README.md).
